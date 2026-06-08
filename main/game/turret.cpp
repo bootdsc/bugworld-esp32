@@ -6,9 +6,9 @@
 void turret_init(Turret* t) {
     memset(t, 0, sizeof(Turret));
     t->pan_angle = 0;
-    t->tilt_angle = 0;
+    t->tilt_angle = -8.0f;
     t->target_pan = 0;
-    t->target_tilt = 0;
+    t->target_tilt = -8.0f;
     t->crosshair_x = GAME_AREA_W / 2.0f;
     t->crosshair_y = GAME_AREA_H / 2.0f;
     t->fire_cooldown = 0;
@@ -48,12 +48,6 @@ void turret_update(Turret* t, const InputState* input, int frame) {
     t->crosshair_y = GAME_AREA_H / 2.0f - norm_tilt * (GAME_AREA_H / 2.0f - 20);
 
     if (t->fire_cooldown > 0) t->fire_cooldown--;
-    if (t->reload_timer > 0) {
-        t->reload_timer--;
-        if (t->reload_timer <= 0) {
-            t->reloading = false;
-        }
-    }
 }
 
 void turret_fire(Turret* t, float* out_dir_x, float* out_dir_y, float* out_dir_z) {
@@ -64,9 +58,7 @@ void turret_fire(Turret* t, float* out_dir_x, float* out_dir_y, float* out_dir_z
     *out_dir_y = sinf(tilt_rad);
     *out_dir_z = -cosf(pan_rad) * cosf(tilt_rad);
 
-    t->fire_cooldown = 8;
-    t->reloading = true;
-    t->reload_timer = 60;  /* 1 second at 60fps */
+    t->fire_cooldown = 2;
 }
 
 void turret_get_camera_params(const Turret* t, float* pan, float* tilt) {

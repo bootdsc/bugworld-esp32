@@ -27,7 +27,6 @@ typedef enum {
     PAUSE_RESUME,
     PAUSE_SAVE,
     PAUSE_OPTIONS,
-    PAUSE_QUIT,
     PAUSE_COUNT
 } PauseItem;
 

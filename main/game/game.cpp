@@ -18,7 +18,7 @@ static void game_start_level(Game* game);
 
 bool game_init(Game* game) {
     memset(game, 0, sizeof(Game));
-    game->state = STATE_LEVEL_INTRO;  /* Skip title, start game immediately */
+    game->state = STATE_OPENING_CUTSCENE;  /* Start with opening cutscene */
     game->frame = 0;
     game->current_level = LEVEL_1_STRAIGHT_INTO_HELL;
     game->current_wave = 0;
@@ -37,6 +37,9 @@ bool game_init(Game* game) {
     game->fire_pressed_prev = false;
     game->save_slot = 0;
     game->pause_touch_item = -1;
+    game->opening_cutscene_timer = 240;  /* 4 seconds opening cutscene */
+    game->lock_on_timer = 0;
+    game->lock_on_active = false;
 
     for (int i = 0; i < 3; i++) game->high_scores[i] = 0;
 
@@ -94,6 +97,13 @@ bool game_init(Game* game) {
             float sz = -300 - (i * 53) % 1500;
             game->starfield[i]->setPosition((int32_t)sx, (int32_t)sy, (int32_t)sz);
         }
+    }
+
+    game->opening_ship_mat = new Material(0x8410);
+    game->opening_ship_mat->shadingMode = ShadingMode::UNLIT;
+    game->opening_ship = Primitives::createCube(50, 20, 100, game->opening_ship_mat);
+    if (game->opening_ship) {
+        game->opening_ship->setPosition(0, 20, -400);
     }
 
     audio_set_volume(game->volume);
@@ -247,10 +257,8 @@ static void game_check_collisions(Game* game) {
 
 static void game_handle_shooting(Game* game, const InputState* input) {
     bool fire_now = input->fire || input->btn_a;
-    bool fire_edge = fire_now && !game->fire_pressed_prev;
-    game->fire_pressed_prev = fire_now;
 
-    if (fire_edge && game->turret.fire_cooldown <= 0 && !game->turret.reloading) {
+    if (fire_now && game->turret.fire_cooldown <= 0) {
         float dir_x, dir_y, dir_z;
         turret_fire(&game->turret, &dir_x, &dir_y, &dir_z);
 
@@ -415,6 +423,45 @@ void game_frame(Game* game, const InputState* input) {
             }
             break;
 
+        case STATE_OPENING_CUTSCENE:
+            game->opening_cutscene_timer--;
+            {
+                float t = 1.0f - ((float)game->opening_cutscene_timer / 240.0f);
+                float cam_z, cam_y;
+                if (t < 0.5f) {
+                    float p = t / 0.5f;
+                    cam_z = 800 - p * 800;
+                    cam_y = 100 - p * 70;
+                } else {
+                    float p = (t - 0.5f) / 0.5f;
+                    cam_z = 0;
+                    cam_y = 30 - p * 20;
+                }
+                game->camera.setPosition(0, (int32_t)cam_y, (int32_t)cam_z);
+                game->camera.lookAt(Vector3{0, 30, -500});
+
+                auto& objects = game->scene->getObjects();
+                objects.clear();
+                if (game->ground_plane) objects.push_back(game->ground_plane);
+                for (int i = 0; i < 30; i++) {
+                    if (game->starfield[i]) objects.push_back(game->starfield[i]);
+                }
+                if (game->opening_ship) objects.push_back(game->opening_ship);
+                game->scene->render();
+
+                hud_draw_string(game->color_buffer, 40, 100, "APPROACHING", 0xFFE0);
+                hud_draw_string(game->color_buffer, 60, 115, "TARGET", 0xFFE0);
+                if (t > 0.5f) {
+                    hud_draw_string(game->color_buffer, 50, 135, "ENTERING", 0x07E0);
+                    hud_draw_string(game->color_buffer, 55, 150, "TURRET", 0x07E0);
+                }
+            }
+            if (game->opening_cutscene_timer <= 0) {
+                game->state = STATE_LEVEL_INTRO;
+                game->level_intro_timer = 120;
+            }
+            break;
+
         case STATE_LEVEL_INTRO:
             game->level_intro_timer--;
             if (game->level_intro_timer <= 0) {
@@ -514,9 +561,7 @@ void game_frame(Game* game, const InputState* input) {
 
             /* Fire to detonate Omega Device after ship launched */
             bool omega_fire = input->fire || input->btn_a;
-            bool omega_fire_edge = omega_fire && !game->fire_pressed_prev;
-            game->fire_pressed_prev = omega_fire;
-            if (game->omega_device_ready && game->ship_launched && omega_fire_edge) {
+            if (game->omega_device_ready && game->ship_launched && omega_fire) {
                 game->state = STATE_OMEGA_DEVICE;
                 game->game_over_timer = 180;
                 if (game->sound_enabled) audio_play_sfx(SFX_EXPLOSION);
@@ -552,8 +597,15 @@ void game_frame(Game* game, const InputState* input) {
         case STATE_PAUSED: {
             /* Direct touch menu: no joystick, no fire button */
             static bool s_was_touched = false;
+            /* Close menu if touching outside the menu box (x=35..205, y=50..190) */
+            if (input->touch_active && (input->touch_x < 35 || input->touch_x > 205 ||
+                                         input->touch_y < 50 || input->touch_y > 190)) {
+                game->state = STATE_PLAYING;
+                s_was_touched = false;
+                break;
+            }
             if (input->touch_active && input->touch_y >= 50 && input->touch_y <= 190) {
-                int item = (input->touch_y - 75) / 20;
+                int item = (input->touch_y - 75) / 24;
                 if (item < 0) item = 0;
                 if (item >= PAUSE_COUNT) item = PAUSE_COUNT - 1;
                 menus_set_selection(item);
@@ -573,10 +625,6 @@ void game_frame(Game* game, const InputState* input) {
                     case PAUSE_OPTIONS:
                         game->state = STATE_OPTIONS;
                         menus_set_current(MENU_OPTIONS);
-                        break;
-                    case PAUSE_QUIT:
-                        game->state = STATE_TITLE;
-                        menus_set_current(MENU_TITLE);
                         break;
                 }
                 if (game->sound_enabled) audio_play_sfx(SFX_MENU_SELECT);
@@ -634,6 +682,14 @@ void game_frame(Game* game, const InputState* input) {
             static int opt_repeat = 0;
             if (opt_repeat > 0) opt_repeat--;
 
+            /* Close menu if touching outside the options box (x=20..220, y=35..205) */
+            if (input->touch_active && (input->touch_x < 20 || input->touch_x > 220 ||
+                                         input->touch_y < 35 || input->touch_y > 205)) {
+                game->state = STATE_TITLE;
+                menus_set_current(MENU_TITLE);
+                break;
+            }
+
             bool up = input->dpad_up || input->stick_y < -0.5f;
             bool down = input->dpad_down || input->stick_y > 0.5f;
 
@@ -668,6 +724,13 @@ void game_frame(Game* game, const InputState* input) {
 
         case STATE_HIGH_SCORES:
             {
+                /* Close on outside click (box: x=30..210, y=45..195) */
+                if (input->touch_active && (input->touch_x < 30 || input->touch_x > 210 ||
+                                             input->touch_y < 45 || input->touch_y > 195)) {
+                    game->state = STATE_TITLE;
+                    menus_set_current(MENU_TITLE);
+                    break;
+                }
                 bool any_now = input_any_pressed(input);
                 bool any_edge = any_now && !game->fire_pressed_prev;
                 game->fire_pressed_prev = any_now;
@@ -683,6 +746,14 @@ void game_frame(Game* game, const InputState* input) {
             static int save_selected = 0;
             static int save_repeat = 0;
             if (save_repeat > 0) save_repeat--;
+
+            /* Close on outside click (box: x=35..205, y=55..185) */
+            if (input->touch_active && (input->touch_x < 35 || input->touch_x > 205 ||
+                                         input->touch_y < 55 || input->touch_y > 185)) {
+                game->state = STATE_PAUSED;
+                menus_set_current(MENU_PAUSE);
+                break;
+            }
 
             bool up = input->dpad_up || input->stick_y < -0.5f;
             bool down = input->dpad_down || input->stick_y > 0.5f;
@@ -764,9 +835,43 @@ void game_frame(Game* game, const InputState* input) {
 
         game->scene->render();
 
+        /* Lock-on detection: check if any enemy is aligned with camera */
+        {
+            float pan_rad = game->turret.pan_angle * 3.14159f / 180.0f;
+            float tilt_rad = game->turret.tilt_angle * 3.14159f / 180.0f;
+            float cam_dx = sinf(pan_rad);
+            float cam_dy = sinf(tilt_rad);
+            float cam_dz = -cosf(pan_rad) * cosf(tilt_rad);
+            float best_dot = 0.0f;
+            for (int i = 0; i < MAX_ENEMIES; i++) {
+                Enemy* e = &game->enemies.enemies[i];
+                if (!e->active) continue;
+                float dx = e->x - 0;
+                float dy = e->y - 30;
+                float dz = e->z - 0;
+                float dist = sqrtf(dx*dx + dy*dy + dz*dz);
+                if (dist < 20.0f) continue;
+                dx /= dist; dy /= dist; dz /= dist;
+                float dot = dx*cam_dx + dy*cam_dy + dz*cam_dz;
+                if (dot > best_dot) best_dot = dot;
+            }
+            if (best_dot > 0.94f) {
+                game->lock_on_active = true;
+                game->lock_on_timer++;
+            } else {
+                game->lock_on_active = false;
+                game->lock_on_timer = 0;
+            }
+        }
+
         hud_draw_crosshair(game->color_buffer,
                            GAME_AREA_W / 2,
-                           GAME_AREA_H / 2, 0x07FF);
+                           GAME_AREA_H / 2,
+                           game->lock_on_active ? 0xF800 : 0x07FF);
+
+        if (game->lock_on_active && (game->lock_on_timer % 10) < 5) {
+            hud_draw_lock_on(game->color_buffer, GAME_AREA_W / 2, GAME_AREA_H / 2);
+        }
 
         hud_draw_string(game->color_buffer, 4, 4, "SCORE:", 0xFFFF);
         char score_buf[16];
@@ -797,11 +902,6 @@ void game_frame(Game* game, const InputState* input) {
         }
         hud_draw_string(game->color_buffer, 4, 70, "BASE:", 0xFFFF);
         hud_draw_bar(game->color_buffer, 44, 70, 60, 7, gen_health_pct, 100, 0x07E0, 0x2104);
-
-        if (game->turret.reloading) {
-            hud_draw_reload_indicator(game->color_buffer, 100, 230,
-                                      36 - game->turret.reload_timer, 36);
-        }
 
         /* Boss eye count during boss approach */
         if (game->state == STATE_BOSS_APPROACH) {
@@ -863,7 +963,7 @@ void game_frame(Game* game, const InputState* input) {
             if (e->active && e->mesh) objects.push_back(e->mesh);
         }
         game->scene->render();
-        hud_draw_crosshair(game->color_buffer, GAME_AREA_W / 2, GAME_AREA_H / 2, 0x07FF);
+        hud_draw_crosshair(game->color_buffer, GAME_AREA_W / 2, GAME_AREA_H / 2, 0xF800);
         hud_draw_string(game->color_buffer, 4, 4, "SCORE:", 0xFFFF);
         char score_buf[16];
         snprintf(score_buf, sizeof(score_buf), "%d", game->score);

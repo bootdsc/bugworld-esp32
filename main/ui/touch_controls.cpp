@@ -86,21 +86,28 @@ void touch_controls_draw(uint16_t* fb, int touch_x, int touch_y, bool touching,
     int dot_x = JOY_CENTER_X - jdx;  /* MINUS because of X mirror */
     int dot_y = JOY_CENTER_Y + jdy;
 
-    if (touching && touch_x < 120 && touch_y >= 220) {
-        draw_filled_circle(fb, dot_x, dot_y, 12, 0xFFE0);
-        draw_circle_outline(fb, dot_x, dot_y, 12, 0xFFFF);
+    /* Joystick zone outline */
+    draw_circle_outline(fb, JOY_CENTER_X, JOY_CENTER_Y, JOY_RADIUS_X, 0x4208);
+    draw_circle_outline(fb, JOY_CENTER_X, JOY_CENTER_Y, JOY_RADIUS_X - 2, 0x2104);
+
+    if (touching && touch_x < 150 && touch_y >= 220) {
+        draw_filled_circle(fb, dot_x, dot_y, 14, 0xFFE0);
+        draw_circle_outline(fb, dot_x, dot_y, 14, 0xFFFF);
     } else {
-        draw_filled_circle(fb, JOY_CENTER_X, JOY_CENTER_Y, 10, 0x8410);
+        draw_filled_circle(fb, JOY_CENTER_X, JOY_CENTER_Y, 12, 0x8410);
+        draw_circle_outline(fb, JOY_CENTER_X, JOY_CENTER_Y, 12, 0xC618);
     }
 
     /* Fire button: physical right, fully visible */
     int fire_r = FIRE_RADIUS;
     if (fire_pressed) {
         draw_filled_circle(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r, 0xF800);
-        draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r + 2, 0xFD20);
+        draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r + 3, 0xFD20);
+        draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r + 6, 0xF800);
     } else {
         draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r, 0xF800);
-        draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r - 2, 0xA000);
+        draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r - 3, 0xA000);
+        draw_circle_outline(fb, FIRE_CENTER_X, FIRE_CENTER_Y, fire_r - 6, 0x8000);
     }
 
     int text_y = DISPLAY_HEIGHT - 14;

@@ -16,6 +16,7 @@ using namespace Renderer;
 
 typedef enum {
     STATE_TITLE,
+    STATE_OPENING_CUTSCENE,
     STATE_LEVEL_INTRO,
     STATE_PLAYING,
     STATE_PAUSED,
@@ -76,6 +77,15 @@ typedef struct {
     int boss_phase;
     int enemies_killed_level;
     int countdown_timer;       /* Frames for countdown display */
+
+    /* Opening cutscene fields */
+    int opening_cutscene_timer;
+    Object* opening_ship;
+    Material* opening_ship_mat;
+
+    /* HUD lock-on */
+    int lock_on_timer;
+    bool lock_on_active;
 
     Object* ground_plane;
     Object* starfield[30];

@@ -57,8 +57,8 @@
  * Framebuffer mirrored: physical x=60 -> fb x=239-60=179. */
 #define JOY_CENTER_X    179
 #define JOY_CENTER_Y    270
-#define JOY_RADIUS_X    50
-#define JOY_RADIUS_Y    50
+#define JOY_RADIUS_X    60
+#define JOY_RADIUS_Y    60
 #define JOY_DEADZONE    0.15f
 
 /* Fire button: 20px from physical right edge, fully visible.
@@ -66,7 +66,7 @@
  * Framebuffer mirrored: physical x=199 -> fb x=239-199=40. */
 #define FIRE_CENTER_X   40
 #define FIRE_CENTER_Y   270
-#define FIRE_RADIUS     20
+#define FIRE_RADIUS     24
 
 #define MAX_ENEMIES     15
 #define MAX_PROJECTILES 30
@@ -75,8 +75,8 @@
 
 #define TURRET_PAN_MIN  (-60.0f)
 #define TURRET_PAN_MAX  (60.0f)
-#define TURRET_TILT_MIN (-30.0f)
-#define TURRET_TILT_MAX (45.0f)
+#define TURRET_TILT_MIN (-10.0f)
+#define TURRET_TILT_MAX (30.0f)
 #define TURRET_SPEED    2.5f
 
 #define SAVE_MAGIC      0x42574753

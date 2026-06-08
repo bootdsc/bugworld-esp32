@@ -104,9 +104,9 @@ void menus_draw_pause(uint16_t* fb, int selected) {
 
     hud_draw_string(fb, 82, 55, "PAUSED", 0xFFE0);
 
-    const char* items[] = {"RESUME", "SAVE", "OPTIONS", "QUIT"};
+    const char* items[] = {"RESUME", "SAVE", "OPTIONS"};
     for (int i = 0; i < PAUSE_COUNT; i++) {
-        int y_pos = 75 + i * 20;
+        int y_pos = 75 + i * 24;
         if (i == selected) {
             hud_draw_rect(fb, 45, y_pos - 1, 150, 16, 0x4208);
             hud_draw_string(fb, 55, y_pos, items[i], 0xFFE0);
@@ -115,7 +115,8 @@ void menus_draw_pause(uint16_t* fb, int selected) {
         }
     }
 
-    hud_draw_string(fb, 45, 170, "A:SEL B:BACK", 0x8410);
+    hud_draw_string(fb, 45, 170, "TAP OUTSIDE", 0x8410);
+    hud_draw_string(fb, 55, 182, "TO CLOSE", 0x8410);
 }
 
 void menus_draw_game_over(uint16_t* fb, int score) {
@@ -193,7 +194,8 @@ void menus_draw_options(uint16_t* fb, int selected, uint8_t volume, uint8_t brig
         hud_draw_string(fb, 150, y_pos, val_buf, 0x07FF);
     }
 
-    hud_draw_string(fb, 30, 185, "A:CHANGE B:BACK", 0x8410);
+    hud_draw_string(fb, 30, 185, "TAP OUTSIDE", 0x8410);
+    hud_draw_string(fb, 40, 197, "TO CLOSE", 0x8410);
 }
 
 void menus_draw_high_scores(uint16_t* fb, const int* scores) {
@@ -218,7 +220,8 @@ void menus_draw_high_scores(uint16_t* fb, const int* scores) {
         hud_draw_string(fb, 70, y_pos, score_buf, 0xFFE0);
     }
 
-    hud_draw_string(fb, 50, 165, "B:BACK", 0x8410);
+    hud_draw_string(fb, 45, 165, "TAP OUTSIDE", 0x8410);
+    hud_draw_string(fb, 55, 177, "TO CLOSE", 0x8410);
 }
 
 void menus_draw_save_select(uint16_t* fb, int selected, const bool* slot_exists) {
@@ -245,5 +248,6 @@ void menus_draw_save_select(uint16_t* fb, int selected, const bool* slot_exists)
         }
     }
 
-    hud_draw_string(fb, 45, 165, "A:SAVE B:BACK", 0x8410);
+    hud_draw_string(fb, 45, 165, "TAP OUTSIDE", 0x8410);
+    hud_draw_string(fb, 55, 177, "TO CLOSE", 0x8410);
 }

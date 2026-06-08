@@ -137,10 +137,11 @@ void hud_draw_bar(uint16_t* fb, int x, int y, int w, int h, int value, int max_v
 }
 
 void hud_draw_crosshair(uint16_t* fb, int cx, int cy, uint16_t color) {
-    int size = 8;
-    int gap = 3;
+    int size = 10;
+    int gap = 4;
     int screen_cx = DISPLAY_WIDTH - 1 - cx;
 
+    /* Bracket-style crosshair */
     for (int i = gap; i <= size; i++) {
         if (screen_cx - i >= 0 && screen_cx - i < DISPLAY_WIDTH && cy >= 0 && cy < GAME_AREA_H)
             fb[cy * DISPLAY_WIDTH + (screen_cx - i)] = color;
@@ -152,6 +153,25 @@ void hud_draw_crosshair(uint16_t* fb, int cx, int cy, uint16_t color) {
             fb[(cy + i) * DISPLAY_WIDTH + screen_cx] = color;
     }
 
+    /* Corner brackets */
+    int bracket = 6;
+    for (int i = 0; i < 3; i++) {
+        int b = bracket + i;
+        /* Top-left */
+        if (screen_cx - b >= 0 && cy - b >= 0)
+            fb[(cy - b) * DISPLAY_WIDTH + (screen_cx - b)] = color;
+        /* Top-right */
+        if (screen_cx + b < DISPLAY_WIDTH && cy - b >= 0)
+            fb[(cy - b) * DISPLAY_WIDTH + (screen_cx + b)] = color;
+        /* Bottom-left */
+        if (screen_cx - b >= 0 && cy + b < GAME_AREA_H)
+            fb[(cy + b) * DISPLAY_WIDTH + (screen_cx - b)] = color;
+        /* Bottom-right */
+        if (screen_cx + b < DISPLAY_WIDTH && cy + b < GAME_AREA_H)
+            fb[(cy + b) * DISPLAY_WIDTH + (screen_cx + b)] = color;
+    }
+
+    /* Center dot */
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
             int px = screen_cx + dx;
@@ -160,6 +180,28 @@ void hud_draw_crosshair(uint16_t* fb, int cx, int cy, uint16_t color) {
                 fb[py * DISPLAY_WIDTH + px] = color;
             }
         }
+    }
+}
+
+void hud_draw_lock_on(uint16_t* fb, int cx, int cy) {
+    int screen_cx = DISPLAY_WIDTH - 1 - cx;
+    int r = 14;
+    uint16_t color = 0xF800;
+
+    /* Draw a square bracket around target */
+    for (int i = -r; i <= r; i += 2) {
+        int px1 = screen_cx - r;
+        int px2 = screen_cx + r;
+        int py1 = cy - r;
+        int py2 = cy + r;
+        if (px1 >= 0 && px1 < DISPLAY_WIDTH && cy + i >= 0 && cy + i < GAME_AREA_H)
+            fb[(cy + i) * DISPLAY_WIDTH + px1] = color;
+        if (px2 >= 0 && px2 < DISPLAY_WIDTH && cy + i >= 0 && cy + i < GAME_AREA_H)
+            fb[(cy + i) * DISPLAY_WIDTH + px2] = color;
+        if (screen_cx + i >= 0 && screen_cx + i < DISPLAY_WIDTH && py1 >= 0 && py1 < GAME_AREA_H)
+            fb[py1 * DISPLAY_WIDTH + (screen_cx + i)] = color;
+        if (screen_cx + i >= 0 && screen_cx + i < DISPLAY_WIDTH && py2 >= 0 && py2 < GAME_AREA_H)
+            fb[py2 * DISPLAY_WIDTH + (screen_cx + i)] = color;
     }
 }
 
